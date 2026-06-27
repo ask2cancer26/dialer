@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spurwise Dialer</title>
+  <script src="https://sdk.twilio.com/js/voice/releases/2.12.0/twilio.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f4f4f5;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+      padding: 28px 24px;
+      width: 100%;
+      max-width: 420px;
+    }
+
+    h1 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #111;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 24px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: #444;
+      margin-bottom: 6px;
+    }
+
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input:focus {
+      border-color: #2563eb;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s, background 0.15s;
+      margin-top: 12px;
+    }
+
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-call  { background: #16a34a; color: white; }
+    .btn-call:hover:not(:disabled)  { background: #15803d; }
+    .btn-hangup { background: #dc2626; color: white; }
+    .btn-hangup:hover:not(:disabled) { background: #b91c1c; }
+    .btn-primary { background: #2563eb; color: white; }
+    .btn-primary:hover:not(:disabled) { background: #1d4ed8; }
+
+    .status-bar {
+      margin-top: 14px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      background: #f1f5f9;
+      color: #475569;
+      min-height: 38px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      background: #94a3b8;
+    }
+    .dot.green  { background: #16a34a; }
+    .dot.red    { background: #dc2626; }
+    .dot.yellow { background: #ca8a04; animation: pulse 1s infinite; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #e5e7eb;
+      margin: 20px 0;
+    }
+
+    /* Log table */
+    .log-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .log-title { font-size: 13px; font-weight: 600; color: #444; }
+
+    .btn-copy {
+      font-size: 12px;
+      padding: 4px 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      background: white;
+      cursor: pointer;
+      color: #555;
+    }
+    .btn-copy:hover { background: #f9fafb; }
+
+    table {
+      width: 100%;
+      font-size: 12px;
+      border-collapse: collapse;
+    }
+
+    th {
+      text-align: left;
+      color: #888;
+      font-weight: 500;
+      padding: 4px 6px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    td {
+      padding: 6px 6px;
+      border-bottom: 1px solid #f3f4f6;
+      color: #333;
+      vertical-align: middle;
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    select.outcome {
+      font-size: 12px;
+      padding: 2px 4px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background: white;
+    }
+
+    .empty-log { font-size: 12px; color: #aaa; text-align: center; padding: 12px 0; }
+
+    /* Screen visibility */
+    #login-screen  { display: block; }
+    #dialer-screen { display: none; }
+
+    .error-msg { color: #dc2626; font-size: 13px; margin-top: 8px; }
+
+    #timer { font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body>
+
+<!-- ── LOGIN ── -->
+<div class="card" id="login-screen">
+  <h1>Spurwise Dialer</h1>
+  <p class="subtitle">Enter your password to continue</p>
+  <label for="pw">Password</label>
+  <input type="password" id="pw" placeholder="••••••••" autocomplete="current-password">
+  <button class="btn btn-primary" id="login-btn" onclick="login()">Sign in</button>
+  <p class="error-msg" id="login-error"></p>
+</div>
+
+<!-- ── DIALER ── -->
+<div class="card" id="dialer-screen">
+  <h1>Spurwise Dialer</h1>
+  <p class="subtitle">Calls out from a UK number &mdash; <span id="device-status">connecting…</span></p>
+
+  <label for="number">UK number to call</label>
+  <input type="text" id="number" placeholder="+44 7700 900000" value="+44 ">
+
+  <button class="btn btn-call"   id="call-btn"   onclick="makeCall()"  disabled>Call</button>
+  <button class="btn btn-hangup" id="hangup-btn" onclick="hangUp()"   style="display:none">Hang Up</button>
+
+  <div class="status-bar">
+    <span class="dot" id="status-dot"></span>
+    <span id="status-text">Ready</span>
+    <span id="timer" style="margin-left:auto; color:#94a3b8;"></span>
+  </div>
+
+  <hr class="divider">
+
+  <div class="log-header">
+    <span class="log-title">Call log</span>
+    <button class="btn-copy" onclick="copyLog()">Copy CSV</button>
+  </div>
+
+  <table id="log-table">
+    <thead>
+      <tr>
+        <th>Time (UK)</th>
+        <th>Number</th>
+        <th>Outcome</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody id="log-body">
+      <tr><td colspan="4" class="empty-log">No calls yet</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────────
+  let device = null;
+  let activeCall = null;
+  let timerInterval = null;
+  let callStart = null;
+  let storedPassword = '';
+  let logRows = JSON.parse(localStorage.getItem('dialerLog') || '[]');
+
+  // ── Login ──────────────────────────────────────────────
+  document.getElementById('pw').addEventListener('keydown', e => {
+    if (e.key === 'Enter') login();
+  });
+
+  async function login() {
+    const pw = document.getElementById('pw').value.trim();
+    if (!pw) return;
+
+    document.getElementById('login-btn').disabled = true;
+    document.getElementById('login-error').textContent = '';
+
+    try {
+      const res = await fetch('/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pw }),
+      });
+
+      if (!res.ok) {
+        document.getElementById('login-error').textContent = 'Wrong password.';
+        document.getElementById('login-btn').disabled = false;
+        return;
+      }
+
+      const { token } = await res.json();
+      storedPassword = pw;
+      await initDevice(token);
+
+      document.getElementById('login-screen').style.display  = 'none';
+      document.getElementById('dialer-screen').style.display = 'block';
+      renderLog();
+
+    } catch (err) {
+      document.getElementById('login-error').textContent = 'Connection error. Try again.';
+      document.getElementById('login-btn').disabled = false;
+    }
+  }
+
+  // ── Twilio Device ──────────────────────────────────────
+  async function initDevice(token) {
+    device = new Twilio.Device(token, { logLevel: 1, codecPreferences: ['opus', 'pcmu'] });
+
+    device.on('registered', () => {
+      document.getElementById('device-status').textContent = 'ready';
+      document.getElementById('call-btn').disabled = false;
+    });
+
+    device.on('error', (err) => {
+      setStatus('Error: ' + err.message, 'red');
+    });
+
+    device.on('tokenWillExpire', async () => {
+      const res = await fetch('/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: storedPassword }),
+      });
+      const { token: newToken } = await res.json();
+      device.updateToken(newToken);
+    });
+
+    await device.register();
+  }
+
+  // ── Call ───────────────────────────────────────────────
+  async function makeCall() {
+    const raw = document.getElementById('number').value.trim();
+    const to  = raw.replace(/\s+/g, '');
+
+    if (!to.startsWith('+')) {
+      setStatus('Enter number in +44 format', 'red');
+      return;
+    }
+
+    setStatus('Connecting…', 'yellow');
+    document.getElementById('call-btn').style.display   = 'none';
+    document.getElementById('hangup-btn').style.display = 'block';
+
+    try {
+      activeCall = await device.connect({ params: { To: to } });
+
+      activeCall.on('accept', () => {
+        callStart = Date.now();
+        startTimer();
+        setStatus('Connected', 'green');
+      });
+
+      activeCall.on('disconnect', () => onCallEnd(to));
+      activeCall.on('cancel',     () => onCallEnd(to));
+      activeCall.on('reject',     () => onCallEnd(to));
+
+    } catch (err) {
+      setStatus('Failed: ' + err.message, 'red');
+      resetCallUI();
+    }
+  }
+
+  function hangUp() {
+    if (activeCall) activeCall.disconnect();
+  }
+
+  function onCallEnd(number) {
+    stopTimer();
+    setStatus('Call ended', '');
+    resetCallUI();
+    addLogRow(number);
+    activeCall = null;
+    callStart  = null;
+  }
+
+  function resetCallUI() {
+    document.getElementById('call-btn').style.display   = 'block';
+    document.getElementById('hangup-btn').style.display = 'none';
+  }
+
+  // ── Timer ──────────────────────────────────────────────
+  function startTimer() {
+    timerInterval = setInterval(() => {
+      const secs = Math.floor((Date.now() - callStart) / 1000);
+      const m = String(Math.floor(secs / 60)).padStart(2, '0');
+      const s = String(secs % 60).padStart(2, '0');
+      document.getElementById('timer').textContent = m + ':' + s;
+    }, 1000);
+  }
+
+  function stopTimer() {
+    clearInterval(timerInterval);
+    document.getElementById('timer').textContent = '';
+  }
+
+  // ── Status bar ─────────────────────────────────────────
+  function setStatus(text, colour) {
+    document.getElementById('status-text').textContent = text;
+    const dot = document.getElementById('status-dot');
+    dot.className = 'dot' + (colour ? ' ' + colour : '');
+  }
+
+  // ── Call log ───────────────────────────────────────────
+  function addLogRow(number) {
+    const now = new Date().toLocaleString('en-GB', { timeZone: 'Europe/London' });
+    const row = { time: now, number, outcome: 'No Answer', notes: '' };
+    logRows.unshift(row);
+    localStorage.setItem('dialerLog', JSON.stringify(logRows));
+    renderLog();
+  }
+
+  function renderLog() {
+    const tbody = document.getElementById('log-body');
+    if (logRows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="empty-log">No calls yet</td></tr>';
+      return;
+    }
+    tbody.innerHTML = logRows.map((r, i) => `
+      <tr>
+        <td>${r.time}</td>
+        <td>${r.number}</td>
+        <td>
+          <select class="outcome" onchange="updateRow(${i}, 'outcome', this.value)">
+            <option ${r.outcome === 'No Answer' ? 'selected' : ''}>No Answer</option>
+            <option ${r.outcome === 'Answered'  ? 'selected' : ''}>Answered</option>
+            <option ${r.outcome === 'Voicemail' ? 'selected' : ''}>Voicemail</option>
+            <option ${r.outcome === 'Busy'      ? 'selected' : ''}>Busy</option>
+          </select>
+        </td>
+        <td><input type="text" style="width:100%;font-size:12px;border:1px solid #eee;border-radius:4px;padding:2px 4px;"
+             value="${r.notes}" placeholder="e.g. Garage, Peak time"
+             onchange="updateRow(${i}, 'notes', this.value)"></td>
+      </tr>
+    `).join('');
+  }
+
+  function updateRow(i, field, value) {
+    logRows[i][field] = value;
+    localStorage.setItem('dialerLog', JSON.stringify(logRows));
+  }
+
+  function copyLog() {
+    const header = 'Time (UK),Number,Outcome,Notes';
+    const rows   = logRows.map(r =>
+      `"${r.time}","${r.number}","${r.outcome}","${r.notes}"`
+    );
+    const csv = [header, ...rows].join('\n');
+    navigator.clipboard.writeText(csv).then(() => {
+      const btn = document.querySelector('.btn-copy');
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy CSV', 1500);
+    });
+  }
+</script>
+
+</body>
+</html>
