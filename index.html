@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Spurwise Dialer</title>
-  <script src="https://cdn.jsdelivr.net/npm/@twilio/voice-sdk@2.16.0/dist/twilio.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -24,166 +23,76 @@
       box-shadow: 0 2px 12px rgba(0,0,0,0.1);
       padding: 28px 24px;
       width: 100%;
-      max-width: 420px;
+      max-width: 480px;
     }
 
-    h1 {
-      font-size: 18px;
-      font-weight: 600;
-      color: #111;
-      margin-bottom: 4px;
-    }
+    h1 { font-size: 18px; font-weight: 600; color: #111; margin-bottom: 4px; }
+    .subtitle { font-size: 13px; color: #888; margin-bottom: 24px; }
 
-    .subtitle {
-      font-size: 13px;
-      color: #888;
-      margin-bottom: 24px;
-    }
-
-    label {
-      display: block;
-      font-size: 13px;
-      font-weight: 500;
-      color: #444;
-      margin-bottom: 6px;
-    }
+    label { display: block; font-size: 13px; font-weight: 500; color: #444; margin-bottom: 6px; }
 
     input[type="text"], input[type="password"] {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      font-size: 16px;
-      outline: none;
-      transition: border-color 0.15s;
+      width: 100%; padding: 10px 12px;
+      border: 1px solid #ddd; border-radius: 8px;
+      font-size: 16px; outline: none; transition: border-color 0.15s;
     }
-
-    input:focus {
-      border-color: #2563eb;
-    }
+    input:focus { border-color: #2563eb; }
 
     .btn {
-      width: 100%;
-      padding: 12px;
-      border: none;
-      border-radius: 8px;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity 0.15s, background 0.15s;
-      margin-top: 12px;
+      width: 100%; padding: 12px; border: none; border-radius: 8px;
+      font-size: 15px; font-weight: 600; cursor: pointer;
+      transition: opacity 0.15s, background 0.15s; margin-top: 12px;
     }
-
     .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-    .btn-call  { background: #16a34a; color: white; }
-    .btn-call:hover:not(:disabled)  { background: #15803d; }
-    .btn-hangup { background: #dc2626; color: white; }
-    .btn-hangup:hover:not(:disabled) { background: #b91c1c; }
+    .btn-call    { background: #16a34a; color: white; }
+    .btn-call:hover:not(:disabled) { background: #15803d; }
     .btn-primary { background: #2563eb; color: white; }
     .btn-primary:hover:not(:disabled) { background: #1d4ed8; }
 
     .status-bar {
-      margin-top: 14px;
-      padding: 10px 12px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 500;
-      background: #f1f5f9;
-      color: #475569;
-      min-height: 38px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      margin-top: 14px; padding: 10px 12px; border-radius: 8px;
+      font-size: 13px; font-weight: 500; background: #f1f5f9; color: #475569;
+      min-height: 38px; display: flex; align-items: center; gap: 8px;
     }
-
-    .dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      flex-shrink: 0;
-      background: #94a3b8;
-    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: #94a3b8; }
     .dot.green  { background: #16a34a; }
     .dot.red    { background: #dc2626; }
     .dot.yellow { background: #ca8a04; animation: pulse 1s infinite; }
+    .dot.blue   { background: #2563eb; animation: pulse 0.8s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50%       { opacity: 0.4; }
-    }
+    .divider { border: none; border-top: 1px solid #e5e7eb; margin: 20px 0; }
 
-    .divider {
-      border: none;
-      border-top: 1px solid #e5e7eb;
-      margin: 20px 0;
-    }
-
-    /* Log table */
-    .log-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-
-    .log-title { font-size: 13px; font-weight: 600; color: #444; }
-
-    .btn-copy {
-      font-size: 12px;
-      padding: 4px 10px;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      background: white;
-      cursor: pointer;
-      color: #555;
-    }
+    .log-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .log-title  { font-size: 13px; font-weight: 600; color: #444; }
+    .btn-copy   { font-size: 12px; padding: 4px 10px; border: 1px solid #ddd; border-radius: 6px; background: white; cursor: pointer; color: #555; }
     .btn-copy:hover { background: #f9fafb; }
 
-    table {
-      width: 100%;
-      font-size: 12px;
-      border-collapse: collapse;
-    }
-
-    th {
-      text-align: left;
-      color: #888;
-      font-weight: 500;
-      padding: 4px 6px;
-      border-bottom: 1px solid #e5e7eb;
-    }
-
-    td {
-      padding: 6px 6px;
-      border-bottom: 1px solid #f3f4f6;
-      color: #333;
-      vertical-align: middle;
-    }
-
+    table { width: 100%; font-size: 12px; border-collapse: collapse; }
+    th { text-align: left; color: #888; font-weight: 500; padding: 4px 6px; border-bottom: 1px solid #e5e7eb; }
+    td { padding: 6px 6px; border-bottom: 1px solid #f3f4f6; color: #333; vertical-align: middle; }
     tr:last-child td { border-bottom: none; }
 
-    select.outcome {
-      font-size: 12px;
-      padding: 2px 4px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      background: white;
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 10px;
+      font-size: 11px; font-weight: 600;
     }
+    .badge-answered  { background: #dcfce7; color: #15803d; }
+    .badge-noanswer  { background: #fef9c3; color: #854d0e; }
+    .badge-busy      { background: #fee2e2; color: #991b1b; }
+    .badge-failed    { background: #f3f4f6; color: #6b7280; }
+    .badge-calling   { background: #dbeafe; color: #1d4ed8; }
 
     .empty-log { font-size: 12px; color: #aaa; text-align: center; padding: 12px 0; }
-
-    /* Screen visibility */
-    #login-screen  { display: block; }
-    #dialer-screen { display: none; }
-
     .error-msg { color: #dc2626; font-size: 13px; margin-top: 8px; }
 
-    #timer { font-variant-numeric: tabular-nums; }
+    #login-screen  { display: block; }
+    #dialer-screen { display: none; }
   </style>
 </head>
 <body>
 
-<!-- ── LOGIN ── -->
+<!-- LOGIN -->
 <div class="card" id="login-screen">
   <h1>Spurwise Dialer</h1>
   <p class="subtitle">Enter your password to continue</p>
@@ -193,21 +102,19 @@
   <p class="error-msg" id="login-error"></p>
 </div>
 
-<!-- ── DIALER ── -->
+<!-- DIALER -->
 <div class="card" id="dialer-screen">
   <h1>Spurwise Dialer</h1>
-  <p class="subtitle">Calls out from a UK number &mdash; <span id="device-status">connecting…</span></p>
+  <p class="subtitle">Calls from UK number — outcome detected automatically</p>
 
   <label for="number">UK number to call</label>
   <input type="text" id="number" placeholder="+44 7700 900000" value="+44 ">
 
-  <button class="btn btn-call"   id="call-btn"   onclick="makeCall()"  disabled>Call</button>
-  <button class="btn btn-hangup" id="hangup-btn" onclick="hangUp()"   style="display:none">Hang Up</button>
+  <button class="btn btn-call" id="call-btn" onclick="makeCall()" disabled>Call</button>
 
   <div class="status-bar">
     <span class="dot" id="status-dot"></span>
-    <span id="status-text">Ready</span>
-    <span id="timer" style="margin-left:auto; color:#94a3b8;"></span>
+    <span id="status-text">Sign in to start</span>
   </div>
 
   <hr class="divider">
@@ -217,14 +124,9 @@
     <button class="btn-copy" onclick="copyLog()">Copy CSV</button>
   </div>
 
-  <table id="log-table">
+  <table>
     <thead>
-      <tr>
-        <th>Time (UK)</th>
-        <th>Number</th>
-        <th>Outcome</th>
-        <th>Notes</th>
-      </tr>
+      <tr><th>Time (UK)</th><th>Number</th><th>Outcome</th><th>Notes</th></tr>
     </thead>
     <tbody id="log-body">
       <tr><td colspan="4" class="empty-log">No calls yet</td></tr>
@@ -233,12 +135,8 @@
 </div>
 
 <script>
-  // ── State ──────────────────────────────────────────────
-  let device = null;
-  let activeCall = null;
-  let timerInterval = null;
-  let callStart = null;
   let storedPassword = '';
+  let polling = null;
   let logRows = JSON.parse(localStorage.getItem('dialerLog') || '[]');
 
   // ── Login ──────────────────────────────────────────────
@@ -253,60 +151,18 @@
     document.getElementById('login-btn').disabled = true;
     document.getElementById('login-error').textContent = '';
 
-    try {
-      const res = await fetch('/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: pw }),
-      });
-
-      if (!res.ok) {
-        document.getElementById('login-error').textContent = 'Wrong password.';
-        document.getElementById('login-btn').disabled = false;
-        return;
-      }
-
-      const { token } = await res.json();
-      storedPassword = pw;
-      await initDevice(token);
-
-      document.getElementById('login-screen').style.display  = 'none';
-      document.getElementById('dialer-screen').style.display = 'block';
-      renderLog();
-
-    } catch (err) {
-      document.getElementById('login-error').textContent = 'Connection error. Try again.';
-      document.getElementById('login-btn').disabled = false;
-    }
+    // Validate password by attempting a dummy call check
+    // We verify by hitting /poll with a fake SID — a 401 means wrong password
+    // Instead, we just store it and verify on first real call. Show dialer immediately.
+    storedPassword = pw;
+    document.getElementById('login-screen').style.display  = 'none';
+    document.getElementById('dialer-screen').style.display = 'block';
+    document.getElementById('call-btn').disabled = false;
+    setStatus('Ready', '');
+    renderLog();
   }
 
-  // ── Twilio Device ──────────────────────────────────────
-  async function initDevice(token) {
-    device = new Twilio.Device(token, { logLevel: 1, codecPreferences: ['opus', 'pcmu'] });
-
-    device.on('registered', () => {
-      document.getElementById('device-status').textContent = 'ready';
-      document.getElementById('call-btn').disabled = false;
-    });
-
-    device.on('error', (err) => {
-      setStatus('Error: ' + err.message, 'red');
-    });
-
-    device.on('tokenWillExpire', async () => {
-      const res = await fetch('/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: storedPassword }),
-      });
-      const { token: newToken } = await res.json();
-      device.updateToken(newToken);
-    });
-
-    await device.register();
-  }
-
-  // ── Call ───────────────────────────────────────────────
+  // ── Make Call ──────────────────────────────────────────
   async function makeCall() {
     const raw = document.getElementById('number').value.trim();
     const to  = raw.replace(/\s+/g, '');
@@ -316,60 +172,65 @@
       return;
     }
 
-    setStatus('Connecting…', 'yellow');
-    document.getElementById('call-btn').style.display   = 'none';
-    document.getElementById('hangup-btn').style.display = 'block';
+    document.getElementById('call-btn').disabled = true;
+    setStatus('Initiating call…', 'blue');
+
+    const now = new Date().toLocaleString('en-GB', { timeZone: 'Europe/London' });
 
     try {
-      activeCall = await device.connect({ params: { To: to } });
-
-      activeCall.on('accept', () => {
-        callStart = Date.now();
-        startTimer();
-        setStatus('Connected', 'green');
+      const res = await fetch('/call', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: storedPassword, to }),
       });
 
-      activeCall.on('disconnect', () => onCallEnd(to));
-      activeCall.on('cancel',     () => onCallEnd(to));
-      activeCall.on('reject',     () => onCallEnd(to));
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (res.status === 401) {
+          setStatus('Wrong password — reload and try again', 'red');
+        } else {
+          setStatus('Error: ' + (data.error || 'Unknown'), 'red');
+          document.getElementById('call-btn').disabled = false;
+        }
+        return;
+      }
+
+      setStatus('Ringing…', 'yellow');
+      addLogRow(now, to, data.callSid, 'calling');
+      startPolling(data.callSid);
 
     } catch (err) {
-      setStatus('Failed: ' + err.message, 'red');
-      resetCallUI();
+      setStatus('Network error — try again', 'red');
+      document.getElementById('call-btn').disabled = false;
     }
   }
 
-  function hangUp() {
-    if (activeCall) activeCall.disconnect();
-  }
+  // ── Poll for call status ───────────────────────────────
+  function startPolling(callSid) {
+    if (polling) clearInterval(polling);
+    polling = setInterval(async () => {
+      try {
+        const res  = await fetch(`/poll?callSid=${callSid}`);
+        const data = await res.json();
 
-  function onCallEnd(number) {
-    stopTimer();
-    setStatus('Call ended', '');
-    resetCallUI();
-    addLogRow(number);
-    activeCall = null;
-    callStart  = null;
-  }
+        updateLogOutcome(callSid, data.status);
 
-  function resetCallUI() {
-    document.getElementById('call-btn').style.display   = 'block';
-    document.getElementById('hangup-btn').style.display = 'none';
-  }
+        if (data.terminal) {
+          clearInterval(polling);
+          polling = null;
 
-  // ── Timer ──────────────────────────────────────────────
-  function startTimer() {
-    timerInterval = setInterval(() => {
-      const secs = Math.floor((Date.now() - callStart) / 1000);
-      const m = String(Math.floor(secs / 60)).padStart(2, '0');
-      const s = String(secs % 60).padStart(2, '0');
-      document.getElementById('timer').textContent = m + ':' + s;
-    }, 1000);
-  }
-
-  function stopTimer() {
-    clearInterval(timerInterval);
-    document.getElementById('timer').textContent = '';
+          const label = outcomeLabel(data.status);
+          setStatus(`Done — ${label}`, data.status === 'completed' ? 'green' : '');
+          document.getElementById('call-btn').disabled = false;
+        } else {
+          const label = data.status === 'ringing' ? 'Ringing…' : 'Connecting…';
+          setStatus(label, 'yellow');
+        }
+      } catch {
+        // ignore transient network errors during polling
+      }
+    }, 2000);
   }
 
   // ── Status bar ─────────────────────────────────────────
@@ -380,17 +241,46 @@
   }
 
   // ── Call log ───────────────────────────────────────────
-  function addLogRow(number) {
-    const now = new Date().toLocaleString('en-GB', { timeZone: 'Europe/London' });
-    const row = { time: now, number, outcome: 'No Answer', notes: '' };
-    logRows.unshift(row);
-    localStorage.setItem('dialerLog', JSON.stringify(logRows));
+  function addLogRow(time, number, callSid, status) {
+    logRows.unshift({ time, number, callSid, status, notes: '' });
+    saveLog();
     renderLog();
+  }
+
+  function updateLogOutcome(callSid, status) {
+    const row = logRows.find(r => r.callSid === callSid);
+    if (row) { row.status = status; saveLog(); renderLog(); }
+  }
+
+  function saveLog() {
+    localStorage.setItem('dialerLog', JSON.stringify(logRows));
+  }
+
+  function outcomeLabel(status) {
+    return {
+      completed: 'Answered',
+      'no-answer': 'No Answer',
+      busy:     'Busy',
+      failed:   'Failed',
+      canceled: 'Canceled',
+      calling:  'Calling…',
+      ringing:  'Ringing…',
+      queued:   'Queued',
+      'in-progress': 'In Progress',
+    }[status] || status;
+  }
+
+  function badgeClass(status) {
+    if (status === 'completed')               return 'badge-answered';
+    if (status === 'no-answer')               return 'badge-noanswer';
+    if (status === 'busy')                    return 'badge-busy';
+    if (['calling','ringing','queued','in-progress'].includes(status)) return 'badge-calling';
+    return 'badge-failed';
   }
 
   function renderLog() {
     const tbody = document.getElementById('log-body');
-    if (logRows.length === 0) {
+    if (!logRows.length) {
       tbody.innerHTML = '<tr><td colspan="4" class="empty-log">No calls yet</td></tr>';
       return;
     }
@@ -398,39 +288,25 @@
       <tr>
         <td>${r.time}</td>
         <td>${r.number}</td>
-        <td>
-          <select class="outcome" onchange="updateRow(${i}, 'outcome', this.value)">
-            <option ${r.outcome === 'No Answer' ? 'selected' : ''}>No Answer</option>
-            <option ${r.outcome === 'Answered'  ? 'selected' : ''}>Answered</option>
-            <option ${r.outcome === 'Voicemail' ? 'selected' : ''}>Voicemail</option>
-            <option ${r.outcome === 'Busy'      ? 'selected' : ''}>Busy</option>
-          </select>
-        </td>
+        <td><span class="badge ${badgeClass(r.status)}">${outcomeLabel(r.status)}</span></td>
         <td><input type="text" style="width:100%;font-size:12px;border:1px solid #eee;border-radius:4px;padding:2px 4px;"
-             value="${r.notes}" placeholder="e.g. Garage, Peak time"
-             onchange="updateRow(${i}, 'notes', this.value)"></td>
+             value="${r.notes}" placeholder="Notes"
+             onchange="logRows[${i}].notes=this.value;saveLog()"></td>
       </tr>
     `).join('');
-  }
-
-  function updateRow(i, field, value) {
-    logRows[i][field] = value;
-    localStorage.setItem('dialerLog', JSON.stringify(logRows));
   }
 
   function copyLog() {
     const header = 'Time (UK),Number,Outcome,Notes';
     const rows   = logRows.map(r =>
-      `"${r.time}","${r.number}","${r.outcome}","${r.notes}"`
+      `"${r.time}","${r.number}","${outcomeLabel(r.status)}","${r.notes}"`
     );
-    const csv = [header, ...rows].join('\n');
-    navigator.clipboard.writeText(csv).then(() => {
+    navigator.clipboard.writeText([header, ...rows].join('\n')).then(() => {
       const btn = document.querySelector('.btn-copy');
       btn.textContent = 'Copied!';
       setTimeout(() => btn.textContent = 'Copy CSV', 1500);
     });
   }
 </script>
-
 </body>
 </html>
