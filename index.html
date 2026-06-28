@@ -282,7 +282,7 @@
 
   // ── Twilio Device ──────────────────────────────────────
   async function initDevice(token) {
-    device = new Twilio.Device(token, { logLevel: 1, codecPreferences: ['opus', 'pcmu'], edge: 'dublin' });
+    device = new Twilio.Device(token, { logLevel: 1, codecPreferences: ['opus', 'pcmu'] });
 
     device.on('registered', () => {
       document.getElementById('device-status').textContent = 'ready';
