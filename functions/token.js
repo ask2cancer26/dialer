@@ -6,17 +6,16 @@ async function buildJwt(accountSid, apiKey, apiSecret, twimlAppSid) {
   const header  = { alg: 'HS256', typ: 'JWT', cty: 'twilio-fpa;v=1' };
   const payload = {
     jti:    `${apiKey}-${now}`,
-    iss:    apiKey,
-    sub:    accountSid,
-    nbf:    now,
-    exp:    now + 3600,
     grants: {
       identity: 'rehan',
       voice: {
-        incoming: { allow: false },
         outgoing: { application_sid: twimlAppSid },
       },
     },
+    iat:    now,
+    exp:    now + 3600,
+    iss:    apiKey,
+    sub:    accountSid,
   };
 
   const b64url = (obj) =>
