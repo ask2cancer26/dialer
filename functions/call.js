@@ -13,7 +13,12 @@ export async function onRequestPost(context) {
   }
 
   if (body.password !== env.DIALER_PASSWORD) {
-    return json({ error: 'Unauthorized' }, 401);
+    return json({
+      error: 'Unauthorized',
+      debug_sent_len: body.password?.length,
+      debug_env_len: env.DIALER_PASSWORD?.length,
+      debug_env_defined: env.DIALER_PASSWORD !== undefined,
+    }, 401);
   }
 
   const to = (body.to || '').replace(/\s+/g, '');
